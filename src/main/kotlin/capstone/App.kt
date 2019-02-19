@@ -24,6 +24,8 @@ class App {
         }
 }
 
+var uuid = 0;
+
 fun main() {
 	val server = embeddedServer(Netty, port = 25565) {
 	
@@ -42,13 +44,27 @@ fun main() {
 			}
 
 			webSocket("/") {
+				var t_uuid = uuid;
+				uuid += 1;
 				while(true) {
 					val frame = incoming.receive()
 					when(frame) {
 						is Frame.Text -> {
 							val text = frame.readText();
-							outgoing.send(Frame.Text("server send message ;D"));
-							println(text);
+							println("Receive: " + text + " from " + t_uuid.toString());
+							if(text == "ping") {
+								println("Send: pong " + t_uuid.toString());
+								outgoing.send(Frame.Text("pong"));
+							} else if(text == "hello") {
+								println("Send: welcome");
+								outgoing.send(Frame.Text(t_uuid.toString()));
+							}
+						}
+						is Frame.Ping -> {
+							println("Pingggg");
+						}
+						is Frame.Pong -> {
+							println("Pongggg");
 						}
 					}
 				}
