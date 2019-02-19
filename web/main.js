@@ -12,7 +12,7 @@ var Keys = {
 var uuid = 0;
 
 //Change the ip to local host when testing
-var socket = new WebSocket('ws://192.168.215.57:25565');
+var socket = new WebSocket('ws://192.168.232.185:25565');
 
 socket.onopen = function() {
 	console.log('Send: hello as ' + uuid);
@@ -45,7 +45,7 @@ socket.onmessage = function(s) {
 
 setInterval(function() {
 	//console.log('Send: ping as ' + uuid);
-	socket.send('ping');
+//	socket.send('ping');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.beginPath();
 	if(Keys.up) {

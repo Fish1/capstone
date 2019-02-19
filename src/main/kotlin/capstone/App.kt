@@ -32,6 +32,7 @@ class User(uuid: Int, outgoing: SendChannel<Frame>) {
 	var m_uuid: Int;
 	var m_outgoing: SendChannel<Frame>;
 	var m_x: Double = 0.0;
+	var m_y: Double = 0.0;
 
 	init {
 		this.m_uuid = uuid;
@@ -70,17 +71,18 @@ fun main() {
 							val text = frame.readText();
 							println("Receive: " + text + " from " + t_uuid.toString());
 							if(text == "ping") {
-								println("Send: pong " + t_uuid.toString());
-								outgoing.send(Frame.Text("pong"));
+								//println("Send: pong " + t_uuid.toString());
+								//outgoing.send(Frame.Text("pong"));
 							} else if(text == "hello") {
-								println("Send: welcome");
+								//println("Send: welcome");
 								outgoing.send(Frame.Text("uuid@$t_uuid"));
-							} else if(text == "d") {
+							} else if(text == "right") {
 								user.m_x += 1.0;
-								//outgoing.send(Frame.Text("position@$t_uuid@${user.m_x}"));
 								for((key, value) in users) {
-									value.m_outgoing.send(Frame.Text("position@$t_uuid@${user.m_x}"));
+									value.m_outgoing.send(Frame.Text("positionx@$t_uuid@${user.m_x}"));
 								}
+							} else if(text == "left") {
+						
 							}
 						}
 					}
