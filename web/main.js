@@ -14,14 +14,18 @@ socket.onopen = function() {
 }
 
 socket.onmessage = function(s) {
-	if(s.data !== 'pong') {
-		uuid = parseInt(s.data);
+	var a = s.data.split('@');
+
+	console.log("Received: ");
+	console.log(a);
+
+	if(a[0] === 'uuid') {
+		uuid = parseInt(a[1]);
 	}
-	
-	console.log('Receive: ' + s.data);
 }
 
 setInterval(function() {
 	console.log('Send: ping as ' + uuid);
 	socket.send('ping');
+	socket.send('d');
 }, 500);
