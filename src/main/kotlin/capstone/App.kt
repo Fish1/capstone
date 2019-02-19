@@ -15,6 +15,8 @@ import io.ktor.http.cio.websocket.*
 import io.ktor.http.cio.websocket.CloseReason
 import io.ktor.http.cio.websocket.Frame
 
+import kotlinx.coroutines.channels.*
+
 import java.io.File
 
 class App {
@@ -25,6 +27,19 @@ class App {
 }
 
 var uuid = 0;
+
+class User(uuid: Int, outgoing: SendChannel<Frame>) {
+	var m_uuid: Int;
+	var m_outgoing: SendChannel<Frame>;
+	var m_x: Double = 0.0;
+
+	init {
+		this.m_uuid = uuid;
+		this.m_outgoing = outgoing;
+	}
+}
+
+val users = HashMap<Int, User>();
 
 fun main() {
 	val server = embeddedServer(Netty, port = 25565) {
@@ -46,6 +61,8 @@ fun main() {
 			webSocket("/") {
 				var t_uuid = uuid;
 				uuid += 1;
+				var user = User(t_uuid, outgoing);
+				users.put(t_uuid, user);
 				while(true) {
 					val frame = incoming.receive()
 					when(frame) {
@@ -57,14 +74,14 @@ fun main() {
 								outgoing.send(Frame.Text("pong"));
 							} else if(text == "hello") {
 								println("Send: welcome");
-								outgoing.send(Frame.Text(t_uuid.toString()));
+								outgoing.send(Frame.Text("uuid@$t_uuid"));
+							} else if(text == "d") {
+								user.m_x += 1.0;
+								//outgoing.send(Frame.Text("position@$t_uuid@${user.m_x}"));
+								for((key, value) in users) {
+									value.m_outgoing.send(Frame.Text("position@$t_uuid@${user.m_x}"));
+								}
 							}
-						}
-						is Frame.Ping -> {
-							println("Pingggg");
-						}
-						is Frame.Pong -> {
-							println("Pongggg");
 						}
 					}
 				}
