@@ -25,7 +25,7 @@ class App {
 }
 
 fun main() {
-	val server = embeddedServer(Netty, port = 8000) {
+	val server = embeddedServer(Netty, port = 25565) {
 	
 		install(WebSockets);
 

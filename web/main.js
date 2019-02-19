@@ -3,10 +3,11 @@ var ctx = canvas.getContext("2d");
 
 ctx.rect(20, 20, 150, 100);
 ctx.stroke();
-
-var socket = new WebSocket('ws://localhost:8000');
+//Change the ip to local host when testing
+var socket = new WebSocket('ws://192.168.215.57:25565');
 
 socket.onopen = function() {
+	console.log("hello there");
 	socket.send('client send message :D');
 }
 
