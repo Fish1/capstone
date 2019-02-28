@@ -10,10 +10,9 @@ var Keys = {
 };
 
 //Change the ip to local host when testing
-//jacob = 192.168.232.185;
-//james = 192.168.215.57
-var socket = new WebSocket('ws://192.168.215.57:25565');
-//var socket = new WebSocket('ws://192.168.232.185:25565');
+var jacob = 'ws://192.168.232.185:25565';
+var james = 'ws://192.168.215.57:25565';
+var socket = new WebSocket(jacob);
 
 socket.onopen = function() {
 	console.log('Send: hello as ' + uuid);
@@ -83,10 +82,10 @@ setInterval(function() {
 	    socket.send('right')
     }
 	for (var key in players) {
-        if(players.hasOwnProperty(key)){
+        //if(players.hasOwnProperty(key)){
     	    ctx.rect(players[key].rectx, players[key].recty, players[key].width, players[key].height);
             ctx.stroke();
-        }
+        //}
     }
 }, 20);
 

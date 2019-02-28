@@ -47,7 +47,11 @@ val users = HashMap<Int, User>();
 fun broadcast(data: String) {
 	println("sending: " + data);
 	for((key, value) in users) {
+		try {
 		value.m_outgoing.send(Frame.Text(data));
+		} catch (t : Throwable) {
+
+		}
 	}
 }
 */
@@ -75,38 +79,46 @@ fun main() {
 				uuid += 1;
 				var user = User(t_uuid, outgoing);
 				users.put(t_uuid, user);
-				while(true) {
-					val frame = incoming.receive()
-					when(frame) {
-						is Frame.Text -> {
-							val text = frame.readText();
-							println("Receive: " + text + " from " + t_uuid.toString());
-							if(text == "ping") {
-							} else if(text == "hello") {
-								//println("Send: welcome");
-								outgoing.send(Frame.Text("uuid@$t_uuid"));
-							} else if(text == "right") {
-								user.m_x += 1.0;
-									for((key, value) in users) {
-										value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+				try {
+						while(true) {
+							val frame = incoming.receive()
+							when(frame) {
+								is Frame.Text -> {
+									val text = frame.readText();
+									println("Receive: " + text + " from " + t_uuid.toString());
+									if(text == "ping") {
+									} else if(text == "hello") {
+										//println("Send: welcome");
+										outgoing.send(Frame.Text("uuid@$t_uuid"));
+									} else if(text == "right") {
+										user.m_x += 1.0;
+											for((key, value) in users) {
+												value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+											}
+									} else if(text == "left") {
+										user.m_x -= 1.0;
+											for((key, value) in users) {
+												value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+											}
+									} else if(text == "up") {
+										user.m_y -= 1.0;
+											for((key, value) in users) {
+												value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+											}
+									} else if(text == "down") {
+										user.m_y += 1.0;
+											for((key, value) in users) {
+												value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+											}
 									}
-							} else if(text == "left") {
-								user.m_x -= 1.0;
-									for((key, value) in users) {
-										value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
-									}
-							} else if(text == "up") {
-								user.m_y -= 1.0;
-									for((key, value) in users) {
-										value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
-									}
-							} else if(text == "down") {
-								user.m_y += 1.0;
-									for((key, value) in users) {
-										value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
-									}
+								}
 							}
 						}
+				} catch (e: ClosedReceiveChannelException) {
+					println("onClose ${closeReason.await()}");
+					users.remove(t_uuid);
+					for((key, value) in users) {
+						value.m_outgoing.send(Frame.Text("disconnect@$t_uuid"));
 					}
 				}
 			}
