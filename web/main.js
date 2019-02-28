@@ -10,7 +10,7 @@ var Keys = {
 };
 
 //Change the ip to local host when testing
-var socket = new WebSocket('ws://192.168.215.57:25565');
+var socket = new WebSocket('ws://192.168.232.185:25565');
 
 socket.onopen = function() {
 	console.log('Send: hello as ' + players[0].uuid);

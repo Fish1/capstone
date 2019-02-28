@@ -42,16 +42,27 @@ class User(uuid: Int, outgoing: SendChannel<Frame>) {
 
 val users = HashMap<Int, User>();
 
+/*
+ -- This function gives errors about co-routines --
+fun broadcast(data: String) {
+	println("sending: " + data);
+	for((key, value) in users) {
+		value.m_outgoing.send(Frame.Text(data));
+	}
+}
+*/
+
+
 fun main() {
 	val server = embeddedServer(Netty, port = 25565) {
 	
 		install(WebSockets);
 
 		routing {
+
 			get("/") {
 				val file = File("web/index.html");
 				call.respondText(file.readText(), ContentType.Text.Html);
-
 			}
 
 			get("/main.js") {
@@ -71,18 +82,29 @@ fun main() {
 							val text = frame.readText();
 							println("Receive: " + text + " from " + t_uuid.toString());
 							if(text == "ping") {
-								//println("Send: pong " + t_uuid.toString());
-								//outgoing.send(Frame.Text("pong"));
 							} else if(text == "hello") {
 								//println("Send: welcome");
 								outgoing.send(Frame.Text("uuid@$t_uuid"));
 							} else if(text == "right") {
 								user.m_x += 1.0;
-								for((key, value) in users) {
-									value.m_outgoing.send(Frame.Text("positionx@$t_uuid@${user.m_x}"));
-								}
+									for((key, value) in users) {
+										value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+									}
 							} else if(text == "left") {
-						
+								user.m_x -= 1.0;
+									for((key, value) in users) {
+										value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+									}
+							} else if(text == "up") {
+								user.m_y -= 1.0;
+									for((key, value) in users) {
+										value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+									}
+							} else if(text == "down") {
+								user.m_y += 1.0;
+									for((key, value) in users) {
+										value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
+									}
 							}
 						}
 					}
