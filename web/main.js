@@ -12,7 +12,7 @@ var Keys = {
 //Change the ip to local host when testing
 var jacob = 'ws://192.168.232.185:25565';
 var james = 'ws://192.168.215.57:25565';
-var socket = new WebSocket(jacob);
+var socket = new WebSocket(james);
 
 socket.onopen = function() {
 	console.log('Send: hello as ' + uuid);
@@ -49,6 +49,11 @@ socket.onmessage = function(s) {
         }
 	    else{
             players[a[1]] = {rectx:a[2], recty:a[3], width:40, height:40 };
+        }
+    }
+	if (a[0] === 'disconnect') {
+        if (players.hasOwnProperty(a[1])) {
+            delete(players[a[1]]);
         }
     }
 };
