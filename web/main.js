@@ -44,13 +44,13 @@ socket.onmessage = function(s) {
 		players[uuid.toString()] = {rectx:0, recty:0, width:40, height:40};
 	}
 	else if(a[0] === 'player'){
-	    //if(players[a[1].toString()] === null){
-	        players[a[1].toString()] = {rectx:a[2], recty:a[3], width:40, height:40 };
-        //}
-	    //else{
-         //   players[a[1].toString()].rectx = a[2];
-          //  players[a[1].toString()].recty = a[3];
-        //}
+	    if(players.hasOwnProperty(a[1])){
+            players[a[1]].rectx = a[2];
+            players[a[1]].recty = a[3];
+        }
+	    else{
+            players[a[1]] = {rectx:a[2], recty:a[3], width:40, height:40 };
+        }
     }
 };
 
@@ -67,19 +67,19 @@ setInterval(function() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.beginPath();
 	if(Keys.up) {
-	    players[uuid.toString()].rectx-=1;
+	    players[uuid.toString()].recty-=1;
 	    socket.send('up');
     }
 	if(Keys.down) {
-        players[uuid.toString()].rectx +=1;
+        players[uuid.toString()].recty +=1;
 	    socket.send('down');
     }
 	if(Keys.left) {
-        players[uuid.toString()].recty -=1;
+        players[uuid.toString()].rectx -=1;
 	    socket.send('left')
     }
 	if(Keys.right) {
-        players[uuid.toString()].recty +=1;
+        players[uuid.toString()].rectx +=1;
 	    socket.send('right')
     }
 	for (var key in players) {
