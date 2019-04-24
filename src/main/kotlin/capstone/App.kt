@@ -26,6 +26,8 @@ class App {
         }
 }
 
+data class Block(val m_posX: Double, val m_posY: Double, val m_width: Double, val m_height: Double);
+
 var uuid = 0;
 
 class User(uuid: Int, outgoing: SendChannel<Frame>) {
@@ -42,10 +44,13 @@ class User(uuid: Int, outgoing: SendChannel<Frame>) {
 
 val users = HashMap<Int, User>();
 
+val blocks: MutableList<Block> = mutableListOf();
+
 /*
  -- This function gives errors about co-routines --
-fun broadcast(data: String) {
-	println("sending: " + data);
+ */
+suspend fun broadcast(data: String) {
+	println("Sending: " + data);
 	for((key, value) in users) {
 		try {
 		value.m_outgoing.send(Frame.Text(data));
@@ -54,10 +59,15 @@ fun broadcast(data: String) {
 		}
 	}
 }
-*/
 
 
 fun main() {
+
+	for(i in 1..5) {
+		var block = Block((i * 25).toDouble(), (i * 25).toDouble(), 10.0, 10.0);
+		blocks.add(block);
+	}
+
 	val server = embeddedServer(Netty, port = 25565) {
 	
 		install(WebSockets);
@@ -79,47 +89,44 @@ fun main() {
 				uuid += 1;
 				var user = User(t_uuid, outgoing);
 				users.put(t_uuid, user);
+
+				var blockIndex = 0;
+				for(block in blocks) {
+					outgoing.send(Frame.Text("mkbox@${blockIndex}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"));
+					++blockIndex;
+				}
+				
 				try {
-						while(true) {
-							val frame = incoming.receive()
-							when(frame) {
-								is Frame.Text -> {
-									val text = frame.readText();
-									println("Receive: " + text + " from " + t_uuid.toString());
-									if(text == "ping") {
-									} else if(text == "hello") {
-										//println("Send: welcome");
-										outgoing.send(Frame.Text("uuid@$t_uuid"));
-									} else if(text == "right") {
-										user.m_x += 1.0;
-											for((key, value) in users) {
-												value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
-											}
-									} else if(text == "left") {
-										user.m_x -= 1.0;
-											for((key, value) in users) {
-												value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
-											}
-									} else if(text == "up") {
-										user.m_y -= 1.0;
-											for((key, value) in users) {
-												value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
-											}
-									} else if(text == "down") {
-										user.m_y += 1.0;
-											for((key, value) in users) {
-												value.m_outgoing.send(Frame.Text("player@$t_uuid@${user.m_x}@${user.m_y}"));
-											}
-									}
+					while(true) {
+						val frame = incoming.receive()
+						when(frame) {
+							is Frame.Text -> {
+								val text = frame.readText();
+								println("Receive: " + text + " from " + t_uuid.toString());
+								if(text == "ping") {
+								} else if(text == "hello") {
+									//println("Send: welcome");
+									outgoing.send(Frame.Text("uuid@$t_uuid"));
+								} else if(text == "right") {
+									user.m_x += 1.0;
+									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
+								} else if(text == "left") {
+									user.m_x -= 1.0;
+									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
+								} else if(text == "up") {
+									user.m_y -= 1.0;
+									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
+								} else if(text == "down") {
+									user.m_y += 1.0;
+									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
 								}
 							}
 						}
+					}
 				} catch (e: ClosedReceiveChannelException) {
 					println("onClose ${closeReason.await()}");
 					users.remove(t_uuid);
-					for((key, value) in users) {
-						value.m_outgoing.send(Frame.Text("disconnect@$t_uuid"));
-					}
+					broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
 				}
 			}
 		}
