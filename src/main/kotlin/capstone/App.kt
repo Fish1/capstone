@@ -26,49 +26,81 @@ class App {
         }
 }
 
-data class Block(val m_posX: Double, val m_posY: Double, val m_width: Double, val m_height: Double, val m_delete: Boolean, val m_id: Int);
+abstract class Rectangle(){
+    var m_posX: Double = 0.0
+    var m_posY: Double = 0.0
+    var m_width: Double = 0.0
+    var m_height: Double = 0.0
 
-var uuid = 0;
-
-class User(uuid: Int, outgoing: SendChannel<Frame>) {
-	var m_uuid: Int;
-	var m_outgoing: SendChannel<Frame>;
-	var m_x: Double = 0.0;
-	var m_y: Double = 0.0;
-	var m_width: Double = 40.0;
-	var m_height: Double = 40.0;
-
-	init {
-		this.m_uuid = uuid;
-		this.m_outgoing = outgoing;
-	}
-
-	fun collides(block: Block): Boolean {
-		if(this.m_x - (this.m_width / 2.0) > block.m_posX + (block.m_width / 2.0))
-			return false;
-		if(this.m_x + (this.m_width / 2.0) < block.m_posX - (block.m_width / 2.0))
-			return false;
-		if(this.m_y - (this.m_height / 2.0) > block.m_posY + (block.m_height / 2.0))
-			return false;
-		if(this.m_y + (this.m_height / 2.0) < block.m_posY - (block.m_height / 2.0))
-			return false;
-
-		return true;
-	}
+    fun collides(rect: Rectangle): Boolean {
+        return (this.m_posX < rect.m_posX + rect.m_width
+                && this.m_posX + this.m_width > rect.m_posX
+                && this.m_posY < rect.m_posY + rect.m_height
+                && this.m_posY + this.m_height > rect.m_posY)
+    }
 }
 
-val users = HashMap<Int, User>();
+class Block(posX: Double, posY: Double, width: Double, height: Double, delete: Boolean, id: Int): Rectangle(){
+    var m_delete : Boolean
+    var m_id : Int
 
-val blocks: MutableList<Block> = mutableListOf();
+    init{
+        this.m_posX = posX
+        this.m_posY = posY
+        this.m_width = width
+        this.m_height = height
+        this.m_delete = delete
+        this.m_id = id
+    }
+}
+
+class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, moveX: Double, moveY: Double): Rectangle(){
+    var m_id: Int
+    var m_moveX: Double
+    var m_moveY: Double
+
+    init{
+        this.m_posX = posX
+        this.m_posY = posY
+        this.m_width = width
+        this.m_height = height
+        this.m_id = id
+        this.m_moveX = moveX
+        this.m_moveY = moveY
+    }
+}
+
+var uuid = 0
+
+class User(uuid: Int, outgoing: SendChannel<Frame>): Rectangle(){
+	var m_uuid: Int
+	var m_outgoing: SendChannel<Frame>
+
+	init {
+        this.m_posX = 0.0
+        this.m_posY = 0.0
+        this.m_height = 40.0
+        this.m_width = 40.0
+		this.m_uuid = uuid
+		this.m_outgoing = outgoing
+	}
+
+}
+
+val users = HashMap<Int, User>()
+
+val blocks: MutableList<Block> = mutableListOf()
+
+val balls: MutableList<Ball> = mutableListOf()
 
 /*
  -- This function gives errors about co-routines --
  */
 suspend fun broadcast(data: String) {
-	println("Sending: " + data);
+	println("Sending: " + data)
 	for((key, value) in users) {
 		try {
-			value.m_outgoing.send(Frame.Text(data));
+			value.m_outgoing.send(Frame.Text(data))
 		} catch (t : Throwable) {
 
 		}
@@ -77,56 +109,58 @@ suspend fun broadcast(data: String) {
 
 suspend fun checkCollision() {
 
-	val removeBlocks: MutableList<Block> = mutableListOf();
+	val removeBlocks: MutableList<Block> = mutableListOf()
 
 	for((key, value) in users) {
 		for(block in blocks) {
 			if(value.collides(block)) {
-				removeBlocks.add(block);
-				//block.m_delete = true;	
+				removeBlocks.add(block)
+				//block.m_delete = true
 			}
 		}
 	}
 
 	for(block in removeBlocks) {
-		blocks.remove(block);
-		broadcast("delbox@${block.m_id}");
+		blocks.remove(block)
+		broadcast("delbox@${block.m_id}")
 	}
 }
 
 fun main() {
 
 	for(i in 1..5) {
-		var block = Block((i * 25).toDouble(), (i * 25).toDouble(), 10.0, 10.0, false, i);
-		blocks.add(block);
+		var block = Block((i * 25).toDouble(), (i * 25).toDouble(), 10.0, 10.0, false, i)
+		blocks.add(block)
 	}
+
+    balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 0, 0.0, -2.0))
 
 	val server = embeddedServer(Netty, port = 25565) {
 	
-		install(WebSockets);
+		install(WebSockets)
 
 		routing {
 
 			get("/") {
-				val file = File("web/index.html");
-				call.respondText(file.readText(), ContentType.Text.Html);
+				val file = File("web/index.html")
+				call.respondText(file.readText(), ContentType.Text.Html)
 			}
 
 			get("/main.js") {
-				val file = File("web/main.js");
-				call.respondText(file.readText(), ContentType.Text.Plain);
+				val file = File("web/main.js")
+				call.respondText(file.readText(), ContentType.Text.Plain)
 			}
 
 			webSocket("/") {
-				var t_uuid = uuid;
-				uuid += 1;
-				var user = User(t_uuid, outgoing);
-				users.put(t_uuid, user);
+				var t_uuid = uuid
+				uuid += 1
+				var user = User(t_uuid, outgoing)
+				users.put(t_uuid, user)
 
-				var blockIndex = 0;
+				var blockIndex = 0
 				for(block in blocks) {
-					outgoing.send(Frame.Text("mkbox@${blockIndex}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"));
-					++blockIndex;
+					outgoing.send(Frame.Text("mkbox@${blockIndex}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"))
+					++blockIndex
 				}
 				
 				try {
@@ -134,40 +168,40 @@ fun main() {
 						val frame = incoming.receive()
 						when(frame) {
 							is Frame.Text -> {
-								val text = frame.readText();
-								println("Receive: " + text + " from " + t_uuid.toString());
+								val text = frame.readText()
+								println("Receive: " + text + " from " + t_uuid.toString())
 								if(text == "ping") {
 								} else if(text == "hello") {
-									//println("Send: welcome");
-									outgoing.send(Frame.Text("uuid@$t_uuid"));
+									//println("Send: welcome")
+									outgoing.send(Frame.Text("uuid@$t_uuid"))
 								} else if(text == "right") {
-									user.m_x += 1.0;
-									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
-									checkCollision();
+									user.m_posX += 1.0
+									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+									checkCollision()
 								} else if(text == "left") {
-									user.m_x -= 1.0;
-									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
-									checkCollision();
+									user.m_posX -= 1.0
+									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+									checkCollision()
 								} else if(text == "up") {
-									user.m_y -= 1.0;
-									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
-									checkCollision();
+									user.m_posY -= 1.0
+									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+									checkCollision()
 								} else if(text == "down") {
-									user.m_y += 1.0;
-									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
-									checkCollision();
+									user.m_posY += 1.0
+									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+									checkCollision()
 								}
 							}
 						}
 					}
 				} catch (e: ClosedReceiveChannelException) {
-					println("onClose ${closeReason.await()}");
-					users.remove(t_uuid);
-					broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
+					println("onClose ${closeReason.await()}")
+					users.remove(t_uuid)
+					broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
 				}
 			}
 		}
 	}
 
-	server.start(wait = true);
+	server.start(wait = true)
 }

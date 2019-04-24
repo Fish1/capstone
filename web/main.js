@@ -41,7 +41,7 @@ socket.onmessage = function(s) {
 
 	if(a[0] === 'uuid') {
 	    uuid = a[1];
-		players[uuid.toString()] = {rectx:0, recty:0, width:40, height:40};
+		players[uuid.toString()] = {rectx:0, recty:0, width:40, height:80};
 	}
 	else if(a[0] === 'player'){
 	    if(players.hasOwnProperty(a[1])){
@@ -49,7 +49,7 @@ socket.onmessage = function(s) {
             players[a[1]].recty = a[3];
         }
 	    else{
-            players[a[1]] = {rectx:a[2], recty:a[3], width:40, height:40 };
+            players[a[1]] = {rectx:a[2], recty:a[3], width:40, height:80 };
         }
     }
 	else if(a[0] === 'mkbox'){ // mkbox packet should be mkbox, id, width, height, xpos, ypos
