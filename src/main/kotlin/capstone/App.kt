@@ -26,7 +26,7 @@ class App {
         }
 }
 
-data class Block(val m_posX: Double, val m_posY: Double, val m_width: Double, val m_height: Double);
+data class Block(val m_posX: Double, val m_posY: Double, val m_width: Double, val m_height: Double, val m_delete: Boolean, val m_id: Int);
 
 var uuid = 0;
 
@@ -35,10 +35,25 @@ class User(uuid: Int, outgoing: SendChannel<Frame>) {
 	var m_outgoing: SendChannel<Frame>;
 	var m_x: Double = 0.0;
 	var m_y: Double = 0.0;
+	var m_width: Double = 40.0;
+	var m_height: Double = 40.0;
 
 	init {
 		this.m_uuid = uuid;
 		this.m_outgoing = outgoing;
+	}
+
+	fun collides(block: Block): Boolean {
+		if(this.m_x - (this.m_width / 2.0) > block.m_posX + (block.m_width / 2.0))
+			return false;
+		if(this.m_x + (this.m_width / 2.0) < block.m_posX - (block.m_width / 2.0))
+			return false;
+		if(this.m_y - (this.m_height / 2.0) > block.m_posY + (block.m_height / 2.0))
+			return false;
+		if(this.m_y + (this.m_height / 2.0) < block.m_posY - (block.m_height / 2.0))
+			return false;
+
+		return true;
 	}
 }
 
@@ -53,18 +68,36 @@ suspend fun broadcast(data: String) {
 	println("Sending: " + data);
 	for((key, value) in users) {
 		try {
-		value.m_outgoing.send(Frame.Text(data));
+			value.m_outgoing.send(Frame.Text(data));
 		} catch (t : Throwable) {
 
 		}
 	}
 }
 
+suspend fun checkCollision() {
+
+	val removeBlocks: MutableList<Block> = mutableListOf();
+
+	for((key, value) in users) {
+		for(block in blocks) {
+			if(value.collides(block)) {
+				removeBlocks.add(block);
+				//block.m_delete = true;	
+			}
+		}
+	}
+
+	for(block in removeBlocks) {
+		blocks.remove(block);
+		broadcast("delbox@${block.m_id}");
+	}
+}
 
 fun main() {
 
 	for(i in 1..5) {
-		var block = Block((i * 25).toDouble(), (i * 25).toDouble(), 10.0, 10.0);
+		var block = Block((i * 25).toDouble(), (i * 25).toDouble(), 10.0, 10.0, false, i);
 		blocks.add(block);
 	}
 
@@ -110,15 +143,19 @@ fun main() {
 								} else if(text == "right") {
 									user.m_x += 1.0;
 									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
+									checkCollision();
 								} else if(text == "left") {
 									user.m_x -= 1.0;
 									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
+									checkCollision();
 								} else if(text == "up") {
 									user.m_y -= 1.0;
 									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
+									checkCollision();
 								} else if(text == "down") {
 									user.m_y += 1.0;
 									broadcast("player@$t_uuid@${user.m_x}@${user.m_y}");
+									checkCollision();
 								}
 							}
 						}
