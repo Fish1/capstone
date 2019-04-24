@@ -78,9 +78,9 @@ class User(uuid: Int, outgoing: SendChannel<Frame>): Rectangle(){
 
 	init {
         this.m_posX = 0.0
-        this.m_posY = 0.0
-        this.m_height = 40.0
-        this.m_width = 40.0
+        this.m_posY = 200.0
+        this.m_height = 80.0
+        this.m_width = 20.0
 		this.m_uuid = uuid
 		this.m_outgoing = outgoing
 	}
@@ -159,7 +159,7 @@ fun main() {
 
 				var blockIndex = 0
 				for(block in blocks) {
-					outgoing.send(Frame.Text("mkbox@${blockIndex}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"))
+					outgoing.send(Frame.Text("mkbox@${block.m_id}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"))
 					++blockIndex
 				}
 				

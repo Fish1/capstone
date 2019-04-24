@@ -13,7 +13,7 @@ var Keys = {
 //Change the ip to local host when testing
 var jacob = 'ws://192.168.197.181:25565';
 var james = 'ws://192.168.215.57:25565';
-var socket = new WebSocket(jacob);
+var socket = new WebSocket(james);
 
 socket.onopen = function() {
 	console.log('Send: hello as ' + uuid);
@@ -41,7 +41,7 @@ socket.onmessage = function(s) {
 
 	if(a[0] === 'uuid') {
 	    uuid = a[1];
-		players[uuid.toString()] = {rectx:0, recty:0, width:40, height:80};
+		players[uuid.toString()] = {rectx:0, recty:200, width:20, height:80};
 	}
 	else if(a[0] === 'player'){
 	    if(players.hasOwnProperty(a[1])){
@@ -57,6 +57,7 @@ socket.onmessage = function(s) {
     }
 	else if(a[0] === 'delbox'){
 	    if(boxes.hasOwnProperty(a[1])){
+	        console.log(boxes);
 	        delete(boxes[a[1]]);
         }
     }
@@ -65,13 +66,6 @@ socket.onmessage = function(s) {
             delete(players[a[1]]);
         }
     }
-};
-
-let collision = new function(x1,x2,y1,y2,w1,w2,h1,h2){
-    return (x1<x2+w2 &&
-            x1+w1>x2 &&
-            y1<y2+h2 &&
-            y1+h1>y2)
 };
 
 let makeBox = function(id, width, height, xpos, ypos){
