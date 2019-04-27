@@ -49,7 +49,7 @@ socket.onmessage = function(s) {
             players[a[1]].recty = a[3];
         }
 	    else{
-            players[a[1]] = {rectx:a[2], recty:a[3], width:40, height:80 };
+            players[a[1]] = {rectx:a[2], recty:a[3], width:20, height:80 };
         }
     }
 	else if(a[0] === 'mkbox'){ // mkbox packet should be mkbox, id, width, height, xpos, ypos

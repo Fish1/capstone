@@ -89,6 +89,8 @@ class User(uuid: Int, outgoing: SendChannel<Frame>): Rectangle(){
 
 val users = HashMap<Int, User>()
 
+val spectators = HashMap<Int, User>()
+
 val blocks: MutableList<Block> = mutableListOf()
 
 val balls: MutableList<Ball> = mutableListOf()
@@ -105,6 +107,13 @@ suspend fun broadcast(data: String) {
 
 		}
 	}
+    for((key, value) in spectators) {
+        try {
+            value.m_outgoing.send(Frame.Text(data))
+        } catch (t : Throwable) {
+
+        }
+    }
 }
 
 suspend fun checkCollision() {
@@ -136,7 +145,7 @@ fun main() {
     balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 0, 0.0, -2.0))
 
 	val server = embeddedServer(Netty, port = 25565) {
-	
+
 		install(WebSockets)
 
 		routing {
@@ -151,57 +160,71 @@ fun main() {
 				call.respondText(file.readText(), ContentType.Text.Plain)
 			}
 
-			webSocket("/") {
-				var t_uuid = uuid
-				uuid += 1
-				var user = User(t_uuid, outgoing)
-				users.put(t_uuid, user)
+            webSocket("/") {
+                var t_uuid = uuid
+                uuid += 1
+                var user = User(t_uuid, outgoing)
+                if(t_uuid <2) {
+                    users.put(t_uuid, user)
+                }
+                else{
+                    spectators.put(t_uuid, user)
+                }
 
-				var blockIndex = 0
-				for(block in blocks) {
-					outgoing.send(Frame.Text("mkbox@${block.m_id}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"))
-					++blockIndex
-				}
-				
-				try {
-					while(true) {
-						val frame = incoming.receive()
-						when(frame) {
-							is Frame.Text -> {
-								val text = frame.readText()
-								println("Receive: " + text + " from " + t_uuid.toString())
-								if(text == "ping") {
-								} else if(text == "hello") {
-									//println("Send: welcome")
-									outgoing.send(Frame.Text("uuid@$t_uuid"))
-								} else if(text == "right") {
-									user.m_posX += 1.0
-									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-									checkCollision()
-								} else if(text == "left") {
-									user.m_posX -= 1.0
-									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-									checkCollision()
-								} else if(text == "up") {
-									user.m_posY -= 1.0
-									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-									checkCollision()
-								} else if(text == "down") {
-									user.m_posY += 1.0
-									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-									checkCollision()
-								}
-							}
-						}
-					}
-				} catch (e: ClosedReceiveChannelException) {
-					println("onClose ${closeReason.await()}")
-					users.remove(t_uuid)
-					broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-				}
-			}
+                var blockIndex = 0
+                for (block in blocks) {
+                    outgoing.send(Frame.Text("mkbox@${block.m_id}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"))
+                    ++blockIndex
+                }
+                try {
+                    while (true) {
+                        val frame = incoming.receive()
+                        if(user.m_uuid >= 2){
+                            continue
+                        }
+                        when (frame) {
+                            is Frame.Text -> {
+                                val text = frame.readText()
+                                println("Receive: " + text + " from " + t_uuid.toString())
+                                if (text == "ping") {
+                                } else if (text == "hello") {
+                                    //println("Send: welcome")
+                                    outgoing.send(Frame.Text("uuid@$t_uuid"))
+                                } else if (text == "right") {
+                                    user.m_posX += 1.0
+                                    broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+                                    checkCollision()
+                                } else if (text == "left") {
+                                    user.m_posX -= 1.0
+                                    broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+                                    checkCollision()
+                                } else if (text == "up") {
+                                    user.m_posY -= 1.0
+                                    broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+                                    checkCollision()
+                                } else if (text == "down") {
+                                    user.m_posY += 1.0
+                                    broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+                                    checkCollision()
+                                }
+                            }
+                        }
+                    }
+                } catch (e: ClosedReceiveChannelException) {
+                    println("onClose ${closeReason.await()}")
+                    users.remove(t_uuid)
+                    broadcast("disconnect@$t_uuid@${user.m_posX}@${user.m_posY}")
+                }
+
+
+            }
+
 		}
 	}
 
-	server.start(wait = true)
+	server.start(wait = false)
+    while(true){
+        Thread.sleep(1000/60)
+        print("d")
+    }
 }
