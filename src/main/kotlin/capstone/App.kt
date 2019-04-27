@@ -168,7 +168,7 @@ fun main() {
 		blocks.add(block)
 	}
 
-    	balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 0, 0.0, -2.0))
+    	balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 6, 0.0, -2.0))
 
 	val server = embeddedServer(Netty, port = 25565) {
 
@@ -208,6 +208,10 @@ fun main() {
 				for (block in blocks) {
 					outgoing.send(Frame.Text("mkbox@${block.m_id}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"))
 					++blockIndex
+				}
+
+				for(ball in balls) {
+					outgoing.send(Frame.Text("mkbox@${ball.m_id}@${ball.m_width}@${ball.m_height}@${ball.m_posX}@${ball.m_posY}"))
 				}
 				try {
 					while (true) {
@@ -262,7 +266,7 @@ fun main() {
 		Thread.sleep(1000/60)
 			for(ball in balls) {
 				ball.update();	
-				broadcast("mvbox@${ball.m_id}@${ball.m_posX}@$${ball.m_posY}");
+				broadcast("mvbox@${ball.m_id}@${ball.m_posX}@${ball.m_posY}");
 			}
 		}
 	}
