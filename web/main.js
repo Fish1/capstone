@@ -13,7 +13,7 @@ var Keys = {
 //Change the ip to local host when testing
 var jacob = 'ws://192.168.197.181:25565';
 var james = 'ws://192.168.215.57:25565';
-var socket = new WebSocket(jacob);
+var socket = new WebSocket(james);
 
 socket.onopen = function() {
 	console.log('Send: hello as ' + uuid);

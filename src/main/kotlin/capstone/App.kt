@@ -114,7 +114,7 @@ val balls: MutableList<Ball> = mutableListOf()
  -- This function gives errors about co-routines --
  */
 suspend fun broadcast(data: String) {
-	println("Sending: " + data)
+	//println("Sending: " + data)
 	for((key, value) in users) {
 		try {
 			value.m_outgoing.send(Frame.Text(data))
@@ -135,13 +135,22 @@ suspend fun checkCollision() {
 
 	val removeBlocks: MutableList<Block> = mutableListOf()
 
-	for((key, value) in users) {
+	for(ball in balls) {
+		ball.update()
 		for(block in blocks) {
-			if(value.collides(block)) {
+			if(ball.collides(block)) {
 				removeBlocks.add(block)
 				//block.m_delete = true
 			}
 		}
+		for((_, user) in users) {
+			if(user.collides(ball)) {
+				ball.m_moveX *= -1.01
+				ball.m_moveY *= 1.01
+			}
+		}
+
+		broadcast("mvbox@${ball.m_id}@${ball.m_posX}@${ball.m_posY}")
 	}
 
 	for(block in removeBlocks) {
@@ -159,12 +168,19 @@ suspend fun broadcastPlayers(){
 
 fun main() {
 
-	for(i in 1..5) {
-		var block = Block((i * 25).toDouble(), (i * 25).toDouble(), 10.0, 10.0, false, i)
+	var posHold :Int = 0
+	var blockID : Int = 0
+	while (posHold < 480){
+		var block = Block(350.0, (posHold).toDouble(), 10.0, 10.0, false, blockID)
+		blockID++
 		blocks.add(block)
+		block = Block(360.0, (posHold).toDouble(), 10.0, 10.0, false, blockID)
+		blockID++
+		blocks.add(block)
+		posHold += 10
 	}
 
-    	balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 6, -1.0, -0.99))
+    	balls.add(Ball(480.0/2.0, 200.0, 10.0, 10.0, 6, -1.0, -1.0))
 
 	val server = embeddedServer(Netty, port = 25565) {
 
@@ -220,7 +236,7 @@ fun main() {
 						when (frame) {
 							is Frame.Text -> {
 								val text = frame.readText()
-								println("Receive: $text from $t_uuid.toString()")
+								println("Receive: $text from $t_uuid")
 								when (text){
 									"hello" -> {
 										outgoing.send(Frame.Text("uuid@$t_uuid@${user.m_posX}@${user.m_posY}"))
@@ -228,13 +244,17 @@ fun main() {
 									"up"-> {
 										user.m_posY -= 2.0
 										broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-										checkCollision()
 									}
 									"down" -> {
 										user.m_posY += 2.0
 										broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-										checkCollision()
 									}
+								}
+								if(user.m_posY < 0.0){
+									user.m_posY = 0.0
+								}
+								else if(user.m_posY > 480.0 - user.m_height){
+									user.m_posY = 480.0 - user.m_height
 								}
 							}
 						}
@@ -252,18 +272,11 @@ fun main() {
 	server.start(wait = false)
 
 	GlobalScope.launch {
-		while(true) {
-			Thread.sleep(1000/60)
-			for(ball in balls) {
-				ball.update();	
-				for((key, user) in users) {
-					if(user.collides(ball)) {
-						ball.m_moveX *= -1.01;
-						ball.m_moveY *= 1.01;
-					}
-				}
-				broadcast("mvbox@${ball.m_id}@${ball.m_posX}@${ball.m_posY}");
+		while(true) { Thread.sleep(1000/60)
+			if(users.size < 2){
+				continue
 			}
+			checkCollision()
 		}
 	}
 }
