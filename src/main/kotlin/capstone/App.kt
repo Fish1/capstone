@@ -16,6 +16,8 @@ import io.ktor.http.cio.websocket.CloseReason
 import io.ktor.http.cio.websocket.Frame
 
 import kotlinx.coroutines.channels.*
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.GlobalScope
 
 import java.io.File
 
@@ -44,7 +46,7 @@ class Block(posX: Double, posY: Double, width: Double, height: Double, delete: B
 	var m_delete : Boolean
 	var m_id : Int
 
-	init{
+	init {
 		this.m_posX = posX
 		this.m_posY = posY
 		this.m_width = width
@@ -55,19 +57,36 @@ class Block(posX: Double, posY: Double, width: Double, height: Double, delete: B
 }
 
 class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, moveX: Double, moveY: Double): Rectangle(){
-	var m_id: Int
-	var m_moveX: Double
-	var m_moveY: Double
+    var m_id: Int
+    var m_moveX: Double
+    var m_moveY: Double
 
-	init{
-		this.m_posX = posX
-		this.m_posY = posY
-		this.m_width = width
-		this.m_height = height
-		this.m_id = id
-		this.m_moveX = moveX
-		this.m_moveY = moveY
+    init{
+        this.m_posX = posX
+        this.m_posY = posY
+        this.m_width = width
+        this.m_height = height
+        this.m_id = id
+        this.m_moveX = moveX
+        this.m_moveY = moveY
+    }
+
+    fun update() {
+        m_posX += m_moveX;
+	m_posY += m_moveY;
+
+	if(m_posX < 0) {
+		m_moveX = 1.0;
+	} else if(m_posX > 720) {
+		m_moveX = -1.0;
 	}
+
+	if(m_posY < 0) {
+		m_moveY = 1.0;
+	} else if(m_posY > 480) {
+		m_moveY = -1.0;
+	}
+    }
 }
 
 var uuid = 0
@@ -149,7 +168,7 @@ fun main() {
 		blocks.add(block)
 	}
 
-	balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 0, 0.0, -2.0))
+    	balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 0, 0.0, -2.0))
 
 	val server = embeddedServer(Netty, port = 25565) {
 
@@ -232,14 +251,20 @@ fun main() {
 				}
 
 			}
-
-		}
+	}
 	}
 
 
 	server.start(wait = false)
-	while(true){
-		Thread.sleep(1000/60)
 
+	GlobalScope.launch {
+		while(true) {
+		Thread.sleep(1000/60)
+			for(ball in balls) {
+				ball.update();	
+				broadcast("mvbox@${ball.m_id}@${ball.m_posX}@$${ball.m_posY}");
+			}
+		}
 	}
 }
+

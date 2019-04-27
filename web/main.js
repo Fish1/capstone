@@ -13,7 +13,7 @@ var Keys = {
 //Change the ip to local host when testing
 var jacob = 'ws://192.168.197.181:25565';
 var james = 'ws://192.168.215.57:25565';
-var socket = new WebSocket(james);
+var socket = new WebSocket(jacob);
 
 socket.onopen = function() {
 	console.log('Send: hello as ' + uuid);
@@ -55,6 +55,9 @@ socket.onmessage = function(s) {
 	else if(a[0] === 'mkbox'){ // mkbox packet should be mkbox, id, width, height, xpos, ypos
 		makeBox(a[1], a[2], a[3], a[4], a[5]);
 	}
+	else if(a[0] === 'mvbox') {
+		moveBox(a[1], a[2], a[3]);
+	}
 	else if(a[0] === 'delbox'){
 		if(boxes.hasOwnProperty(a[1])){
 			console.log(boxes);
@@ -71,6 +74,11 @@ socket.onmessage = function(s) {
 let makeBox = function(id, width, height, xpos, ypos){
 	boxes[id] = {w:width, h:height, x:xpos, y:ypos}
 };
+
+let moveBox = function(id, xpos, ypos) {
+	boxes[id].x = xpos;
+	boxes[id].y = ypos;
+}
 
 setInterval(function() {
 	//console.log('Send: ping as ' + uuid);
