@@ -135,6 +135,13 @@ suspend fun checkCollision() {
 	}
 }
 
+suspend fun broadcastPlayers(){
+    for((key, value)in users){
+        broadcast("player@$key@${value.m_posX}@${value.m_posY}")
+    }
+}
+
+
 fun main() {
 
 	for(i in 1..5) {
@@ -189,6 +196,7 @@ fun main() {
                                 if (text == "ping") {
                                 } else if (text == "hello") {
                                     //println("Send: welcome")
+                                    broadcastPlayers()
                                     outgoing.send(Frame.Text("uuid@$t_uuid"))
                                 } else if (text == "right") {
                                     user.m_posX += 1.0
@@ -222,9 +230,11 @@ fun main() {
 		}
 	}
 
+
 	server.start(wait = false)
     while(true){
         Thread.sleep(1000/60)
+
         print("d")
     }
 }
