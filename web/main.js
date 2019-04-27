@@ -23,14 +23,10 @@ socket.onopen = function() {
 window.onkeydown = function(e) {
 	if (e.keyCode === 87) Keys.up = true;
 	else if (e.keyCode === 83) Keys.down = true;
-	else if (e.keyCode === 68) Keys.right = true;
-	else if (e.keyCode === 65) Keys.left = true;
 };
 window.onkeyup = function(e) {
 	if (e.keyCode === 87) Keys.up = false;
 	else if (e.keyCode === 83) Keys.down = false;
-	else if (e.keyCode === 68) Keys.right = false;
-	else if (e.keyCode === 65) Keys.left = false;
 };
 
 socket.onmessage = function(s) {
@@ -41,7 +37,7 @@ socket.onmessage = function(s) {
 
 	if(a[0] === 'uuid') {
 		uuid = a[1];
-		players[uuid.toString()] = {rectx:0, recty:200, width:20, height:80};
+		players[uuid.toString()] = {rectx:a[2], recty:a[3], width:20, height:80};
 	}
 	else if(a[0] === 'player'){
 		if(players.hasOwnProperty(a[1])){
@@ -92,14 +88,6 @@ setInterval(function() {
 	if(Keys.down) {
 		players[uuid.toString()].recty +=1;
 		socket.send('down');
-	}
-	if(Keys.left) {
-		players[uuid.toString()].rectx -=1;
-		socket.send('left')
-	}
-	if(Keys.right) {
-		players[uuid.toString()].rectx +=1;
-		socket.send('right')
 	}
 	for (let key in players) {
 		//if(players.hasOwnProperty(key)){

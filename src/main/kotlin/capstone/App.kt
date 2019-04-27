@@ -46,7 +46,7 @@ class Block(posX: Double, posY: Double, width: Double, height: Double, delete: B
 	var m_delete : Boolean
 	var m_id : Int
 
-	init {
+	init{
 		this.m_posX = posX
 		this.m_posY = posY
 		this.m_width = width
@@ -72,21 +72,21 @@ class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, m
     }
 
     fun update() {
-        m_posX += m_moveX;
-	m_posY += m_moveY;
+        m_posX += m_moveX
+		m_posY += m_moveY
 
-	if(m_posX < 0) {
-		m_moveX = 1.0;
-	} else if(m_posX > 720) {
-		m_moveX = -1.0;
-	}
+		if(m_posX < 0) {
+			m_moveX = 1.0
+		} else if(m_posX > 720) {
+			m_moveX = -1.0
+		}
 
-	if(m_posY < 0) {
-		m_moveY = 1.0;
-	} else if(m_posY > 480) {
-		m_moveY = -1.0;
+		if(m_posY < 0) {
+			m_moveY = 1.0
+		} else if(m_posY > 480) {
+			m_moveY = -1.0
+		}
 	}
-    }
 }
 
 var uuid = 0
@@ -192,17 +192,19 @@ fun main() {
 				uuid += 1
 				var user = User(t_uuid, outgoing)
 				if(users.size <2) {
-					users.put(t_uuid, user)
-					if (users.size == 1){
-						if (users[0]!!.m_posX < 360.0) {
-							user.m_posX = 700.0 - user.m_width
+					users.forEach { _, it ->
+						if(it.m_posX < 360.0){
+							user.m_posX = 700.0-user.m_width
 						}
 					}
+					users.put(t_uuid, user)
 				}
 				else{
 					spectators.put(t_uuid, user)
 					isSpectator = true
 				}
+
+				broadcastPlayers()
 
 				var blockIndex = 0
 				for (block in blocks) {
@@ -218,28 +220,21 @@ fun main() {
 						when (frame) {
 							is Frame.Text -> {
 								val text = frame.readText()
-								println("Receive: " + text + " from " + t_uuid.toString())
-								if (text == "ping") {
-								} else if (text == "hello") {
-									//println("Send: welcome")
-									broadcastPlayers()
-									outgoing.send(Frame.Text("uuid@$t_uuid"))
-								} else if (text == "right") {
-									user.m_posX += 1.0
-									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-									checkCollision()
-								} else if (text == "left") {
-									user.m_posX -= 1.0
-									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-									checkCollision()
-								} else if (text == "up") {
-									user.m_posY -= 1.0
-									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-									checkCollision()
-								} else if (text == "down") {
-									user.m_posY += 1.0
-									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-									checkCollision()
+								println("Receive: $text from $t_uuid.toString()")
+								when (text){
+									"hello" -> {
+										outgoing.send(Frame.Text("uuid@$t_uuid@${user.m_posX}@${user.m_posY}"))
+									}
+									"up"-> {
+										user.m_posY -= 2.0
+										broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+										checkCollision()
+									}
+									"down" -> {
+										user.m_posY += 2.0
+										broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+										checkCollision()
+									}
 								}
 							}
 						}
@@ -249,9 +244,8 @@ fun main() {
 					users.remove(t_uuid)
 					broadcast("disconnect@$t_uuid@${user.m_posX}@${user.m_posY}")
 				}
-
 			}
-	}
+		}
 	}
 
 
@@ -259,12 +253,11 @@ fun main() {
 
 	GlobalScope.launch {
 		while(true) {
-		Thread.sleep(1000/60)
+			Thread.sleep(1000/60)
 			for(ball in balls) {
-				ball.update();	
+				ball.update();
 				broadcast("mvbox@${ball.m_id}@${ball.m_posX}@$${ball.m_posY}");
 			}
 		}
 	}
 }
-
