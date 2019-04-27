@@ -20,54 +20,54 @@ import kotlinx.coroutines.channels.*
 import java.io.File
 
 class App {
-    val greeting: String
-        get() {
-            return "Hello world."
-        }
+	val greeting: String
+		get() {
+			return "Hello world."
+		}
 }
 
 abstract class Rectangle(){
-    var m_posX: Double = 0.0
-    var m_posY: Double = 0.0
-    var m_width: Double = 0.0
-    var m_height: Double = 0.0
+	var m_posX: Double = 0.0
+	var m_posY: Double = 0.0
+	var m_width: Double = 0.0
+	var m_height: Double = 0.0
 
-    fun collides(rect: Rectangle): Boolean {
-        return (this.m_posX < rect.m_posX + rect.m_width
-                && this.m_posX + this.m_width > rect.m_posX
-                && this.m_posY < rect.m_posY + rect.m_height
-                && this.m_posY + this.m_height > rect.m_posY)
-    }
+	fun collides(rect: Rectangle): Boolean {
+		return (this.m_posX < rect.m_posX + rect.m_width
+				&& this.m_posX + this.m_width > rect.m_posX
+				&& this.m_posY < rect.m_posY + rect.m_height
+				&& this.m_posY + this.m_height > rect.m_posY)
+	}
 }
 
 class Block(posX: Double, posY: Double, width: Double, height: Double, delete: Boolean, id: Int): Rectangle(){
-    var m_delete : Boolean
-    var m_id : Int
+	var m_delete : Boolean
+	var m_id : Int
 
-    init{
-        this.m_posX = posX
-        this.m_posY = posY
-        this.m_width = width
-        this.m_height = height
-        this.m_delete = delete
-        this.m_id = id
-    }
+	init{
+		this.m_posX = posX
+		this.m_posY = posY
+		this.m_width = width
+		this.m_height = height
+		this.m_delete = delete
+		this.m_id = id
+	}
 }
 
 class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, moveX: Double, moveY: Double): Rectangle(){
-    var m_id: Int
-    var m_moveX: Double
-    var m_moveY: Double
+	var m_id: Int
+	var m_moveX: Double
+	var m_moveY: Double
 
-    init{
-        this.m_posX = posX
-        this.m_posY = posY
-        this.m_width = width
-        this.m_height = height
-        this.m_id = id
-        this.m_moveX = moveX
-        this.m_moveY = moveY
-    }
+	init{
+		this.m_posX = posX
+		this.m_posY = posY
+		this.m_width = width
+		this.m_height = height
+		this.m_id = id
+		this.m_moveX = moveX
+		this.m_moveY = moveY
+	}
 }
 
 var uuid = 0
@@ -77,10 +77,10 @@ class User(uuid: Int, outgoing: SendChannel<Frame>): Rectangle(){
 	var m_outgoing: SendChannel<Frame>
 
 	init {
-        this.m_posX = 0.0
-        this.m_posY = 200.0
-        this.m_height = 80.0
-        this.m_width = 20.0
+		this.m_posX = 20.0
+		this.m_posY = 200.0
+		this.m_height = 80.0
+		this.m_width = 20.0
 		this.m_uuid = uuid
 		this.m_outgoing = outgoing
 	}
@@ -107,13 +107,13 @@ suspend fun broadcast(data: String) {
 
 		}
 	}
-    for((key, value) in spectators) {
-        try {
-            value.m_outgoing.send(Frame.Text(data))
-        } catch (t : Throwable) {
+	for((key, value) in spectators) {
+		try {
+			value.m_outgoing.send(Frame.Text(data))
+		} catch (t : Throwable) {
 
-        }
-    }
+		}
+	}
 }
 
 suspend fun checkCollision() {
@@ -136,9 +136,9 @@ suspend fun checkCollision() {
 }
 
 suspend fun broadcastPlayers(){
-    for((key, value)in users){
-        broadcast("player@$key@${value.m_posX}@${value.m_posY}")
-    }
+	for((key, value)in users){
+		broadcast("player@$key@${value.m_posX}@${value.m_posY}")
+	}
 }
 
 
@@ -149,7 +149,7 @@ fun main() {
 		blocks.add(block)
 	}
 
-    balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 0, 0.0, -2.0))
+	balls.add(Ball(480.0/2.0, 200.0, 20.0, 20.0, 0, 0.0, -2.0))
 
 	val server = embeddedServer(Netty, port = 25565) {
 
@@ -167,74 +167,79 @@ fun main() {
 				call.respondText(file.readText(), ContentType.Text.Plain)
 			}
 
-            webSocket("/") {
-                var t_uuid = uuid
-                uuid += 1
-                var user = User(t_uuid, outgoing)
-                if(t_uuid <2) {
-                    users.put(t_uuid, user)
-                }
-                else{
-                    spectators.put(t_uuid, user)
-                }
+			webSocket("/") {
+				var t_uuid = uuid
+				var isSpectator = false
+				uuid += 1
+				var user = User(t_uuid, outgoing)
+				if(users.size <2) {
+					users.put(t_uuid, user)
+					if (users.size == 1){
+						if (users[0]!!.m_posX < 360.0) {
+							user.m_posX = 700.0 - user.m_width
+						}
+					}
+				}
+				else{
+					spectators.put(t_uuid, user)
+					isSpectator = true
+				}
 
-                var blockIndex = 0
-                for (block in blocks) {
-                    outgoing.send(Frame.Text("mkbox@${block.m_id}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"))
-                    ++blockIndex
-                }
-                try {
-                    while (true) {
-                        val frame = incoming.receive()
-                        if(user.m_uuid >= 2){
-                            continue
-                        }
-                        when (frame) {
-                            is Frame.Text -> {
-                                val text = frame.readText()
-                                println("Receive: " + text + " from " + t_uuid.toString())
-                                if (text == "ping") {
-                                } else if (text == "hello") {
-                                    //println("Send: welcome")
-                                    broadcastPlayers()
-                                    outgoing.send(Frame.Text("uuid@$t_uuid"))
-                                } else if (text == "right") {
-                                    user.m_posX += 1.0
-                                    broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-                                    checkCollision()
-                                } else if (text == "left") {
-                                    user.m_posX -= 1.0
-                                    broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-                                    checkCollision()
-                                } else if (text == "up") {
-                                    user.m_posY -= 1.0
-                                    broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-                                    checkCollision()
-                                } else if (text == "down") {
-                                    user.m_posY += 1.0
-                                    broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
-                                    checkCollision()
-                                }
-                            }
-                        }
-                    }
-                } catch (e: ClosedReceiveChannelException) {
-                    println("onClose ${closeReason.await()}")
-                    users.remove(t_uuid)
-                    broadcast("disconnect@$t_uuid@${user.m_posX}@${user.m_posY}")
-                }
+				var blockIndex = 0
+				for (block in blocks) {
+					outgoing.send(Frame.Text("mkbox@${block.m_id}@${block.m_width}@${block.m_height}@${block.m_posX}@${block.m_posY}"))
+					++blockIndex
+				}
+				try {
+					while (true) {
+						val frame = incoming.receive()
+						if(isSpectator){
+							continue
+						}
+						when (frame) {
+							is Frame.Text -> {
+								val text = frame.readText()
+								println("Receive: " + text + " from " + t_uuid.toString())
+								if (text == "ping") {
+								} else if (text == "hello") {
+									//println("Send: welcome")
+									broadcastPlayers()
+									outgoing.send(Frame.Text("uuid@$t_uuid"))
+								} else if (text == "right") {
+									user.m_posX += 1.0
+									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+									checkCollision()
+								} else if (text == "left") {
+									user.m_posX -= 1.0
+									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+									checkCollision()
+								} else if (text == "up") {
+									user.m_posY -= 1.0
+									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+									checkCollision()
+								} else if (text == "down") {
+									user.m_posY += 1.0
+									broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
+									checkCollision()
+								}
+							}
+						}
+					}
+				} catch (e: ClosedReceiveChannelException) {
+					println("onClose ${closeReason.await()}")
+					users.remove(t_uuid)
+					broadcast("disconnect@$t_uuid@${user.m_posX}@${user.m_posY}")
+				}
 
-
-            }
+			}
 
 		}
 	}
 
 
 	server.start(wait = false)
-    while(true){
-        Thread.sleep(1000/60)
+	while(true){
+		Thread.sleep(1000/60)
 
-        print("d")
-    }
+	}
 }
