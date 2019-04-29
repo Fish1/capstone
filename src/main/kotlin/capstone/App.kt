@@ -63,28 +63,28 @@ suspend fun checkCollision() {
 	val removeBlocks: MutableList<Block> = mutableListOf()
 
 	for(ball in balls) {
-		ball.update()
 		for(block in blocks) {
 			if(ball.collides(block)) {
 				removeBlocks.add(block)
-				val side = ball.collideSquare(block)
+				val side = ball.collideSide(block)
+				println(side)
 				when (side){
-					'd' ->{
+					'u' ->{
 						if(ball.m_moveY > 0) {
 							ball.m_moveY *= -1
 						}
 					}
-					'u' ->{
+					'd' ->{
 						if(ball.m_moveY < 0){
 							ball.m_moveY *= -1
 						}
 					}
-					'l' ->{
+					'r' ->{
 						if(ball.m_moveX < 0){
 							ball.m_moveX *= -1
 						}
 					}
-					'r' ->{
+					'l' ->{
 						if(ball.m_moveX > 0){
 							ball.m_moveX *= -1
 						}
@@ -94,13 +94,38 @@ suspend fun checkCollision() {
 		}
 		for((_, user) in users) {
 			if(user.collides(ball)) {
+				/*
 				if(ball.m_moveX < 0.0) {
 					ball.m_posX = user.m_posX + user.m_width + 2.0
 				} else if(ball.m_moveX > 0.0) {
 					ball.m_posX = user.m_posX - ball.m_width - 2.0
+				}*/
+				val side = ball.collideSide(user)
+				println(side)
+				when (side){
+					'u' ->{
+						if(ball.m_moveY > 0) {
+							ball.m_moveY *= -1
+						}
+					}
+					'd' ->{
+						if(ball.m_moveY < 0){
+							ball.m_moveY *= -1
+						}
+					}
+					'r' ->{
+						if(ball.m_moveX < 0){
+							ball.m_moveX *= -1
+						}
+					}
+					'l' ->{
+						if(ball.m_moveX > 0){
+							ball.m_moveX *= -1
+						}
+					}
 				}
 
-				ball.m_moveX *= -(1.0 + kotlin.random.Random.nextDouble() * 0.05)
+				ball.m_moveX *= (1.0 + kotlin.random.Random.nextDouble() * 0.05)
 				ball.m_moveY *= (1.0 + kotlin.random.Random.nextDouble() * 0.05)
 			}
 		}
@@ -121,9 +146,9 @@ suspend fun broadcastPlayers(){
 }
 
 fun setup() {
-	blocks.clear();
-	var posHold :Int = 0
-	var blockID : Int = 0
+	blocks.clear()
+	var posHold = 0
+	var blockID = 0
 	while (posHold < 480) {
 		var block = Block(350.0, (posHold).toDouble(), 10.0, 10.0, false, blockID)
 		blockID++
@@ -135,9 +160,9 @@ fun setup() {
 	}
 
 	balls.clear()
-    	balls.add(Ball(480.0/2.0, 200.0, 10.0, 10.0, -1, -1.0, -1.0))
+	balls.add(Ball(480.0/2.0, 200.0, 10.0, 10.0, -1, -2.0, -2.0))
 	
-	for((key, value)in users) {
+	for((_, value)in users) {
 		value.m_score = 0
 	}
 }
@@ -156,7 +181,7 @@ suspend fun sendSetupData() {
 }
 
 fun main() {
-	setup();
+	setup()
 
 	val server = embeddedServer(Netty, port = 25565) {
 
@@ -175,10 +200,10 @@ fun main() {
 			}
 
 			webSocket("/") {
-				var t_uuid = uuid
+				val t_uuid = uuid
 				var isSpectator = false
 				uuid += 1
-				var user: User = User(t_uuid, outgoing)
+				val user = User(t_uuid, outgoing)
 				if(users.size < 2) {
 					users.forEach { _, it ->
 						if(it.m_posX < 360.0){
@@ -253,21 +278,21 @@ fun main() {
 	server.start(wait = false)
 
 	GlobalScope.launch {
-		var paused: Boolean = false
+		var paused = false
 		while(true) { 
 			Thread.sleep(1000/60)
 
 			if(users.size < 2) {
-				if(paused == false) {
-					setup();
-					sendSetupData();
+				if(!paused) {
+					setup()
+					sendSetupData()
 				}
 				broadcast("pause")
-				paused = true;
+				paused = true
 				continue
 			} else {
 				broadcast("play")
-				paused = false;
+				paused = false
 			}
 
 			checkCollision()

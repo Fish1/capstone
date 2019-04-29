@@ -37,6 +37,32 @@ abstract class Rectangle{
 			}
 		}
 	}
+	fun collideSide(rect: Rectangle): Char{
+		val holdX = (rect.m_posX + rect.m_width/2) - (this.m_posX + this.m_width/2)
+		val holdY = (rect.m_posY + rect.m_height/2) - (this.m_posY + this.m_height/2)
+		val holdWidth = .5 * (rect.m_width + this.m_width)
+		val holdHeight =.5 * (rect.m_height + this.m_height)
+		val holdWidthY = holdWidth * holdY
+		val holdHeightX = holdHeight * holdX
+
+		if(holdHeightX <= holdWidthY){
+			if(holdWidthY >= -holdHeightX){//top
+				return 'u'
+			}
+			else{//right
+				return 'r'
+			}
+		}
+		else{
+			if(holdWidthY >= -holdHeightX){//left
+				return 'l'
+			}
+			else{//botton
+				return 'd'
+			}
+		}
+
+	}
 }
 
 class Block(posX: Double, posY: Double, width: Double, height: Double, delete: Boolean, id: Int): Rectangle(){
@@ -57,6 +83,8 @@ class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, m
 	var m_id: Int
 	var m_moveX: Double
 	var m_moveY: Double
+	var m_orgMoveX: Double
+	var m_orgMoveY : Double
 
 	init {
 		this.m_posX = posX
@@ -66,6 +94,8 @@ class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, m
 		this.m_id = id
 		this.m_moveX = moveX
 		this.m_moveY = moveY
+		this.m_orgMoveX = moveX
+		this.m_orgMoveY = m_moveY
 	}
 
 	fun reset() {
@@ -78,15 +108,15 @@ class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, m
 		m_posY = 480.0 / 2.0
 
 		if((0..1).random() == 0) {
-			m_moveX = -1.0
+			this.m_moveX = -this.m_orgMoveX
 		} else {
-			m_moveX = 1.0
+			this.m_moveX = this.m_orgMoveX
 		}
 
 		if((0..1).random() == 0) {
-			m_moveY = -1.0
+			this.m_moveY = -this.m_orgMoveY
 		} else {
-			m_moveY = 1.0
+			this.m_moveY = this.m_orgMoveY
 		}
 	}
 
