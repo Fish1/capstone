@@ -12,7 +12,6 @@ import io.ktor.server.netty.*
 
 import io.ktor.websocket.*
 import io.ktor.http.cio.websocket.*
-import io.ktor.http.cio.websocket.CloseReason
 import io.ktor.http.cio.websocket.Frame
 
 import kotlinx.coroutines.channels.*
@@ -20,9 +19,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.GlobalScope
 
 import java.io.File
-import java.util.Random
-
-import kotlin.random.Random.*
 
 class App {
 	val greeting: String
@@ -31,120 +27,9 @@ class App {
 		}
 }
 
-abstract class Rectangle(){
-	var m_posX: Double = 0.0
-	var m_posY: Double = 0.0
-	var m_width: Double = 0.0
-	var m_height: Double = 0.0
-
-	fun collides(rect: Rectangle): Boolean {
-		return (this.m_posX < rect.m_posX + rect.m_width
-				&& this.m_posX + this.m_width > rect.m_posX
-				&& this.m_posY < rect.m_posY + rect.m_height
-				&& this.m_posY + this.m_height > rect.m_posY)
-	}
-}
-
-class Block(posX: Double, posY: Double, width: Double, height: Double, delete: Boolean, id: Int): Rectangle(){
-	var m_delete : Boolean
-	var m_id : Int
-
-	init {
-		this.m_posX = posX
-		this.m_posY = posY
-		this.m_width = width
-		this.m_height = height
-		this.m_delete = delete
-		this.m_id = id
-	}
-}
-
-class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, moveX: Double, moveY: Double): Rectangle(){
-	var m_id: Int
-	var m_moveX: Double
-	var m_moveY: Double
-
-	init {
-		this.m_posX = posX
-		this.m_posY = posY
-		this.m_width = width
-		this.m_height = height
-		this.m_id = id
-		this.m_moveX = moveX
-		this.m_moveY = moveY
-	}
-
-	fun reset() {
-		if((0..1).random() == 0) {
-			m_posX = (720.0 * (2.0/3.0))	
-		} else {
-			m_posX = (720.0 * (1.0/3.0))
-		}
-
-		m_posY = 480.0 / 2.0
-
-		if((0..1).random() == 0) {
-			m_moveX = -1.0
-		} else {
-			m_moveX = 1.0
-		}
-
-		if((0..1).random() == 0) {
-			m_moveY = -1.0
-		} else {
-			m_moveY = 1.0
-		}
-	}
-
-	suspend fun update() {
-		m_posX += m_moveX
-		m_posY += m_moveY
-
-		if(m_posX < 0 || m_posX > 720 - this.m_width) {
-			m_moveX *= -1.0;
-		}
-
-		if(m_posY < 0 || m_posY > 480 - this.m_height) {
-			m_moveY *= -1.0;
-		}
-
-		if(m_posX < 0) {
-			users[1]?.addScore()
-			reset();
-		} else if(m_posX > 720 - this.m_width) {
-			users[0]?.addScore()
-			reset();
-		}
-	}
-}
-
 var uuid = 0
 
-class User(uuid: Int, outgoing: SendChannel<Frame>): Rectangle() {
-	var m_uuid: Int
-	var m_outgoing: SendChannel<Frame>
-
-	var m_score: Int
-
-	init {
-		this.m_posX = 20.0
-		this.m_posY = 200.0
-		this.m_height = 80.0
-		this.m_width = 20.0
-		this.m_uuid = uuid
-		this.m_outgoing = outgoing
-		this.m_score = 0
-	}
-
-	suspend fun addScore() {
-		this.m_score += 1
-		broadcast("score@${this.m_uuid}@${this.m_score}")
-	}
-}
-
 val users = HashMap<Int, User>()
-var userLeft = null;
-var userRight = null;
 
 val spectators = HashMap<Int, User>()
 
@@ -157,14 +42,14 @@ val balls: MutableList<Ball> = mutableListOf()
  */
 suspend fun broadcast(data: String) {
 	//println("Sending: " + data)
-	for((key, value) in users) {
+	for((_, value) in users) {
 		try {
 			value.m_outgoing.send(Frame.Text(data))
 		} catch (t : Throwable) {
 
 		}
 	}
-	for((key, value) in spectators) {
+	for((_, value) in spectators) {
 		try {
 			value.m_outgoing.send(Frame.Text(data))
 		} catch (t : Throwable) {
@@ -182,8 +67,29 @@ suspend fun checkCollision() {
 		for(block in blocks) {
 			if(ball.collides(block)) {
 				removeBlocks.add(block)
-				ball.m_moveX *= -(1.0 + kotlin.random.Random.nextDouble() * 0.05);
-				ball.m_moveY *= -(1.0 + kotlin.random.Random.nextDouble() * 0.05);
+				val side = ball.collideSquare(block)
+				when (side){
+					'd' ->{
+						if(ball.m_moveY > 0) {
+							ball.m_moveY *= -1
+						}
+					}
+					'u' ->{
+						if(ball.m_moveY < 0){
+							ball.m_moveY *= -1
+						}
+					}
+					'l' ->{
+						if(ball.m_moveX < 0){
+							ball.m_moveX *= -1
+						}
+					}
+					'r' ->{
+						if(ball.m_moveX > 0){
+							ball.m_moveX *= -1
+						}
+					}
+				}
 			}
 		}
 		for((_, user) in users) {
@@ -193,8 +99,9 @@ suspend fun checkCollision() {
 				} else if(ball.m_moveX > 0.0) {
 					ball.m_posX = user.m_posX - ball.m_width - 2.0
 				}
-				ball.m_moveX *= -(1.0 + kotlin.random.Random.nextDouble() * 0.05);
-				ball.m_moveY *= (1.0 + kotlin.random.Random.nextDouble() * 0.05);
+
+				ball.m_moveX *= -(1.0 + kotlin.random.Random.nextDouble() * 0.05)
+				ball.m_moveY *= (1.0 + kotlin.random.Random.nextDouble() * 0.05)
 			}
 		}
 
@@ -227,11 +134,11 @@ fun setup() {
 		posHold += 10
 	}
 
-	balls.clear();
-    	balls.add(Ball(480.0/2.0, 200.0, 10.0, 10.0, 6, -1.0, -1.0))
+	balls.clear()
+    	balls.add(Ball(480.0/2.0, 200.0, 10.0, 10.0, -1, -1.0, -1.0))
 	
 	for((key, value)in users) {
-		value.m_score = 0;
+		value.m_score = 0
 	}
 }
 
