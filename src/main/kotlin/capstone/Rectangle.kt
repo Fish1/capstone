@@ -99,10 +99,10 @@ class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, m
 	}
 
 	fun reset() {
-		if((0..1).random() == 0) {
-			m_posX = (720.0 * (2.0/3.0))
+		if(this.m_posX > 360) {
+			this.m_posX = (720.0 * (2.0/3.0))
 		} else {
-			m_posX = (720.0 * (1.0/3.0))
+			this.m_posX = (720.0 * (1.0/3.0))
 		}
 
 		m_posY = 480.0 / 2.0

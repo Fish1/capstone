@@ -67,7 +67,6 @@ suspend fun checkCollision() {
 			if(ball.collides(block)) {
 				removeBlocks.add(block)
 				val side = ball.collideSide(block)
-				println(side)
 				when (side){
 					'u' ->{
 						if(ball.m_moveY > 0) {
@@ -160,7 +159,8 @@ fun setup() {
 	}
 
 	balls.clear()
-	balls.add(Ball(480.0/2.0, 200.0, 10.0, 10.0, -1, -2.0, -2.0))
+	balls.add(Ball(480.0/2.0, 240.0, 10.0, 10.0, -1, -2.0, -2.0))
+	balls.add(Ball(720.0-240.0,  240.0, 10.0, 10.0, -2, 2.0, 2.0))
 	
 	for((_, value)in users) {
 		value.m_score = 0
