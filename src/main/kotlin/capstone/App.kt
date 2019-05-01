@@ -37,9 +37,10 @@ val blocks: MutableList<Block> = mutableListOf()
 
 val balls: MutableList<Ball> = mutableListOf()
 
-/*
- -- This function gives errors about co-routines --
- */
+var isAI: Boolean = false
+
+var ai:AI = AI(-1)
+
 suspend fun broadcast(data: String) {
 	//println("Sending: " + data)
 	for((_, value) in users) {
@@ -93,14 +94,37 @@ suspend fun checkCollision() {
 		}
 		for((_, user) in users) {
 			if(user.collides(ball)) {
-				/*
-				if(ball.m_moveX < 0.0) {
-					ball.m_posX = user.m_posX + user.m_width + 2.0
-				} else if(ball.m_moveX > 0.0) {
-					ball.m_posX = user.m_posX - ball.m_width - 2.0
-				}*/
 				val side = ball.collideSide(user)
-				println(side)
+				when (side){
+					'u' ->{
+						if(ball.m_moveY > 0) {
+							ball.m_moveY *= -1
+						}
+					}
+					'd' ->{
+						if(ball.m_moveY < 0){
+							ball.m_moveY *= -1
+						}
+					}
+					'r' ->{
+						if(ball.m_moveX < 0){
+							ball.m_moveX *= -1
+						}
+					}
+					'l' ->{
+						if(ball.m_moveX > 0){
+							ball.m_moveX *= -1
+						}
+					}
+				}
+
+				ball.m_moveX *= (1.0 + kotlin.random.Random.nextDouble() * 0.05)
+				ball.m_moveY *= (1.0 + kotlin.random.Random.nextDouble() * 0.05)
+			}
+		}
+		if(isAI){
+			if(ai.collides(ball)){
+				val side = ball.collideSide(ai)
 				when (side){
 					'u' ->{
 						if(ball.m_moveY > 0) {
@@ -141,6 +165,9 @@ suspend fun checkCollision() {
 suspend fun broadcastPlayers(){
 	for((key, value)in users) {
 		broadcast("player@$key@${value.m_posX}@${value.m_posY}")
+	}
+	if(isAI){
+		broadcast("player@${ai.m_uuid}@${ai.m_posX}@${ai.m_posY}")
 	}
 }
 
@@ -204,9 +231,9 @@ fun main() {
 				var isSpectator = false
 				uuid += 1
 				val user = User(t_uuid, outgoing)
-				if(users.size < 2) {
+				if (users.size < 2) {
 					users.forEach { _, it ->
-						if(it.m_posX < 360.0){
+						if (it.m_posX < 360.0) {
 							user.m_posX = 700.0 - user.m_width
 						}
 					}
@@ -218,6 +245,13 @@ fun main() {
 				}
 
 				broadcastPlayers()
+				if(isAI){
+					isAI = false
+					broadcast("disconnect@${ai.m_uuid}@${ai.m_posX}@${ai.m_posY}")
+					user.m_posX = ai.m_posX
+					user.m_posY = ai.m_posY
+					user.m_score = ai.m_score
+				}
 
 				var blockIndex = 0
 				for (block in blocks) {
@@ -225,7 +259,7 @@ fun main() {
 					++blockIndex
 				}
 
-				for(ball in balls) {
+				for (ball in balls) {
 					outgoing.send(Frame.Text("mkbox@${ball.m_id}@${ball.m_width}@${ball.m_height}@${ball.m_posX}@${ball.m_posY}"))
 				}
 
@@ -235,7 +269,7 @@ fun main() {
 					while (true) {
 						val frame = incoming.receive()
 
-						if(isSpectator) {
+						if (isSpectator) {
 							continue
 						}
 
@@ -243,11 +277,11 @@ fun main() {
 							is Frame.Text -> {
 								val text = frame.readText()
 								println("Receive: $text from $t_uuid")
-								when (text){
+								when (text) {
 									"hello" -> {
 										outgoing.send(Frame.Text("uuid@$t_uuid@${user.m_posX}@${user.m_posY}"))
 									}
-									"up"-> {
+									"up" -> {
 										user.m_posY -= 6.0
 										broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
 									}
@@ -255,11 +289,22 @@ fun main() {
 										user.m_posY += 6.0
 										broadcast("player@$t_uuid@${user.m_posX}@${user.m_posY}")
 									}
+									"ai" -> {
+										if (users.size == 1 && !isAI) {
+											isAI = true
+											ai = AI(-1)
+											val side = user.m_posX
+											if (side < 360) {
+												ai.m_posX = 700.0 - user.m_width
+											}
+											broadcast("player@${ai.m_uuid}@${ai.m_posX}@${ai.m_posY}")
+										}
+									}
 								}
 
-								if(user.m_posY < 0.0){
+								if (user.m_posY < 0.0) {
 									user.m_posY = 0.0
-								} else if(user.m_posY > 480.0 - user.m_height){
+								} else if (user.m_posY > 480.0 - user.m_height) {
 									user.m_posY = 480.0 - user.m_height
 								}
 							}
@@ -279,11 +324,11 @@ fun main() {
 
 	GlobalScope.launch {
 		var paused = false
-		while(true) { 
-			Thread.sleep(1000/60)
+		while (true) {
+			Thread.sleep(1000 / 60)
 
-			if(users.size < 2) {
-				if(!paused) {
+			if (users.size < 2 && !isAI) {
+				if (!paused) {
 					setup()
 					sendSetupData()
 				}
@@ -297,8 +342,12 @@ fun main() {
 
 			checkCollision()
 
-			for(ball in balls) {
+			for (ball in balls) {
 				ball.update()
+			}
+			if(isAI){
+				ai.update(balls)
+				broadcastPlayers()
 			}
 		}
 	}

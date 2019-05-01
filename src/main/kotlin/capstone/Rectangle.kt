@@ -16,27 +16,6 @@ abstract class Rectangle{
 				&& this.m_posY <= rect.m_posY + rect.m_height
 				&& this.m_posY + this.m_height >= rect.m_posY)
 	}
-	fun collideSquare(rect: Rectangle): Char{
-		val holdX = (rect.m_posX + rect.m_width/2) - (this.m_posX + this.m_width/2)
-		val holdY = (rect.m_posY + rect.m_height/2) - (this.m_posY + this.m_height/2)
-
-		if(abs(holdX) > abs(holdY)){
-			if(holdX > 0){
-				return 'r'
-			}
-			else{
-				return 'l'
-			}
-		}
-		else{
-			if(holdY > 0){
-				return 'd'
-			}
-			else{
-				return 'u'
-			}
-		}
-	}
 	fun collideSide(rect: Rectangle): Char{
 		val holdX = (rect.m_posX + rect.m_width/2) - (this.m_posX + this.m_width/2)
 		val holdY = (rect.m_posY + rect.m_height/2) - (this.m_posY + this.m_height/2)
@@ -123,6 +102,8 @@ class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, m
 	suspend fun update() {
 		m_posX += m_moveX
 		m_posY += m_moveY
+		var hitLeft = false
+		var hitRight = false
 
 		if(m_posX < 0 || m_posX > 720 - this.m_width) {
 			m_moveX *= -1.0
@@ -133,11 +114,32 @@ class Ball(posX: Double, posY: Double, width: Double, height: Double, id: Int, m
 		}
 
 		if(m_posX < 0) {
-			users[1]?.addScore()
 			reset()
+			hitLeft = true
 		} else if(m_posX > 720 - this.m_width) {
-			users[0]?.addScore()
+			hitRight = true
 			reset()
+		}
+
+		if(hitLeft){
+			for((_, user) in users){
+				if(user.m_posX > 360.0){
+					user.addScore()
+				}
+			}
+			if(isAI && ai.m_posX > 360.0){
+				ai.addScore()
+			}
+		}
+		if(hitRight){
+			for((_, user) in users){
+				if(user.m_posX < 360.0){
+					user.addScore()
+				}
+			}
+			if(isAI && ai.m_posX < 360.0){
+				ai.addScore()
+			}
 		}
 	}
 }
@@ -161,5 +163,51 @@ class User(uuid: Int, outgoing: SendChannel<Frame>): Rectangle() {
 	suspend fun addScore() {
 		this.m_score += 1
 		broadcast("score@${this.m_uuid}@${this.m_score}")
+	}
+}
+
+class AI(uuid: Int):Rectangle(){
+	var m_uuid: Int
+
+	var m_score: Int
+
+	init {
+		this.m_posX = 20.0
+		this.m_posY = 200.0
+		this.m_height = 80.0
+		this.m_width = 20.0
+		this.m_uuid = uuid
+		this.m_score = 0
+	}
+
+	suspend fun addScore() {
+		this.m_score += 1
+		broadcast("score@${this.m_uuid}@${this.m_score}")
+	}
+
+	fun update(balls:List<Ball>){
+		var closeX = 1000.0
+		var closeY = 0.0
+		balls.forEach {
+			val hold = abs(it.m_posX - this.m_posX)
+			if(hold < closeX){
+				closeX = hold
+				closeY = it.m_posY
+			}
+		}
+		if (closeY < this.m_posY ) {
+			this.m_posY -= 6
+		}
+		else if(closeY > this.m_posY + this.m_height){
+			this.m_posY += 6
+		}
+
+		if(this.m_posY <= 0.0){
+			this.m_posY = 0.0
+		}
+		if(this.m_posY >= 480-this.m_height){
+			this.m_posY = 480-this.m_height
+		}
+
 	}
 }

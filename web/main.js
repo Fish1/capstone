@@ -6,8 +6,7 @@ var uuid = 0;
 var Keys = {
 	up: false,
 	down: false,
-	left: false,
-	right: false
+	ai: false
 };
 
 //Change the ip to local host when testing
@@ -26,10 +25,12 @@ socket.onopen = function() {
 window.onkeydown = function(e) {
 	if (e.keyCode === 87) Keys.up = true;
 	else if (e.keyCode === 83) Keys.down = true;
+	else if (e.keyCode === 65) Keys.ai = true;
 };
 window.onkeyup = function(e) {
 	if (e.keyCode === 87) Keys.up = false;
 	else if (e.keyCode === 83) Keys.down = false;
+	else if (e.keyCode === 65) Keys.ai = false;
 };
 
 socket.onmessage = function(s) {
@@ -124,7 +125,10 @@ setInterval(function() {
 		}
 	} else {
 		ctx.font = "30px Arial";
-		ctx.fillText("Waiting for Opponent...", 50, 50);
+		ctx.fillText("Waiting for Opponent...\n...Press A to fight an AI...", 50, 50);
+		if(Keys.ai){
+			socket.send('ai')
+		}
 	}
-}, 20);
+}, 1000/60);
 
